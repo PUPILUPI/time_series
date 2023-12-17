@@ -5,10 +5,11 @@ import seaborn as sb
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
 from statsmodels.graphics import tsaplots
-from scipy import stats
+from scipy import stats, signal
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 from statsmodels.tsa.arima.model import ARIMA
 from arch import arch_model
+import pmdarima as pm
 
 #гарч модель
 def print_info_garch(data, data_diff, name):
@@ -171,17 +172,21 @@ wheat_data = wheat_data.set_index('DATE')
 # get_part_autocorr(wheat_data['OPEN'], 'Акции Пшеницы')
 #ПЕРИОДОГРАММЫ
 # f, Pxx_spec = signal.periodogram(rusAgro_data['OPEN']) # возвращает значения частоты и спектр(мощность)
-# plt.figure(figsize=(16, 8), dpi=120)
-# plt.semilogy(f, Pxx_spec)
+# plt.figure(figsize=(12, 6), dpi=120)
+# # plt.semilogy(f, Pxx_spec)
+# plt.stem(1/f, Pxx_spec) # по горизонтали периоды, по вертикали спектр
 # plt.title('Периодограмма акций РусАгро')
 # f, Pxx_spec = signal.periodogram(phosAgro_data['OPEN']) # возвращает значения частоты и спектр(мощность)
-# plt.figure(figsize=(14, 7), dpi=120)
-# plt.semilogy(f, Pxx_spec)
+# plt.figure(figsize=(12, 6), dpi=120)
+# # plt.semilogy(f, Pxx_spec)
+# plt.stem(1/f, Pxx_spec) # по горизонтали периоды, по вертикали спектр
 # plt.title('Периодограмма акций фосАгро')
 # f, Pxx_spec = signal.periodogram(wheat_data['OPEN']) # возвращает значения частоты и спектр(мощность)
 # plt.figure(figsize=(12, 6), dpi=120)
-# plt.semilogy(f, Pxx_spec)
+# # plt.semilogy(f, Pxx_spec)
+# plt.stem(1/f, Pxx_spec)
 # plt.title('Периодограмма акций Пшеница')
+# plt.show()
 
 
 #СТРОИМ РЯДЫ ОТНОСИТЕЛЬНЫХ ПРИРАЩЕНИЙ
@@ -218,7 +223,7 @@ test_data = rusAgro_data['OPEN'][train_size:]
 #автоматическое
 
 # model = pm.auto_arima(train_data, trace=True)
-# model = pm.auto_arima(train_data, start_p=1, start_q=1,
+# model = pm.auto_arima(rusAgro_data['OPEN'], start_p=1, start_q=1,
 #                       max_p=10, max_q=10,
 #                       d=1, trace=True,
 #                       seasonal=False)
@@ -227,7 +232,7 @@ test_data = rusAgro_data['OPEN'][train_size:]
 # print(forecast)
 #вручную
 plt.figure()
-mymodel = ARIMA(train_data, order=(9, 1, 1))
+mymodel = ARIMA(train_data, order=(9, 1, 2))
 modelfit = mymodel.fit()
 # forecast = modelfit.predict(start=train_size, end=len(phosAgro_data) - 1)
 forecast = modelfit.forecast(len(test_data))
@@ -235,13 +240,11 @@ rusAgro_data['forecast'] = [None]*(len(rusAgro_data)-len(test_data)) + list(fore
 # forecast = modelfit.predict()
 # print(forecast)
 # print(len(train_data))
-print(len(forecast))
-print(len(rusAgro_data['OPEN'][train_size:]))
 # plt.plot(phosAgro_data['OPEN'], label='real data')
 # plt.plot(phosAgro_data['forecast'], label='forecast')
 
-plt.plot(rusAgro_data.index[train_size:], rusAgro_data['OPEN'][train_size:], label='real data русАгро')
-plt.plot(rusAgro_data.index[train_size:], forecast, label='predict_data')
+plt.plot(rusAgro_data.index[train_size:], np.cumsum(rusAgro_data['OPEN'][train_size:]), label='real data русАгро')
+plt.plot(rusAgro_data.index[train_size:], np.cumsum(forecast), label='predict_data')
 # plt.plot(phosAgro_data.index[1000:train_size], phosAgro_data['OPEN'][1000:train_size], label='real data')
 # plt.plot(phosAgro_data.index[1000:train_size], forecast[1000:train_size], label='predict_data')
 plt.legend()
